@@ -4,27 +4,31 @@ from Bio import SeqIO, Seq
 from collections import OrderedDict
 from numpy import *
 import argparse
+import json
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-  '--cds', '-c', help='Fasta file with CDS sequences')
+  '--cds', '-c', help='Fasta file with CDS sequences from six-frame translation; assumes translated with standard genetic code with canonical stop codons TGA/TAA/TAG translated as X')
 parser.add_argument(
   '--hmmer', '-a', help='Alignments produced by hmmsearch, output file from -o option')
 parser.add_argument(
   '--matrix', '-m', help='Output path to write matrix for Weblogo')
 parser.add_argument(
-  '--codon_threshold', '-t', type=float, default=0.05,
+  '--counts', '-o', help='Output path to write table of codon counts')
+parser.add_argument(
+  '--codon_threshold', '-t', type=float, default=0.05, # TODO improve/correct the description in help
   help='Cut-off for including codon to be displayed; fraction of the mean codon frequency of other non-stop codons')
 parser.add_argument(
   '--eval_threshold', '-v', type=float, default=1e-20,
   help='Conditional evalue threshold for HMMER domains to use')
+parser.add_argument(
+  '--debug', action='store_true')
 args = parser.parse_args()
 
 if not args.cds or not args.hmmer or not args.matrix:
     print('Options --cds, --hmmer, and --matrix are mandatory')
     parser.print_help()
     exit()
-
 
 codon_l = ( # standard genetic code
   ('TTT', 'F'),
@@ -211,7 +215,7 @@ for chunk in chunks:
                 query_aln.append(query_aln_line_atoms[2])
 
               query_aln_seq = "".join(query_aln)
-              hmmer_cons = "".join(hmm_aln)
+              hmmer_cons = "".join(hmm_aln) # consensus amino acid sequence from HMMer alignment
 
               cds_aln_l = aln_cds_to_pep_aln(cds_d[query_id], query_aln_seq, pep_start=query_aln_start-1)
               
@@ -223,8 +227,10 @@ for chunk in chunks:
                   cod_count_d[c] += 1
 
                 #h = h.upper() #uncomment to examine all positions
-                if q == 'X':
+                if q == 'X': # One of the canonical stop codons
                   #cod_d.setdefault(c, []).append(h.upper())
+                  # If consensus is >50%, HMMer will report it as uppercase.
+                  # Assume that this doesn't change in future versions.
                   if h.isupper():
                     used_cods += 1
                     cod_d.setdefault(c, []).append(h)
@@ -306,18 +312,43 @@ print('used codons', used_cods)
 
 print()
 
+# 50% consensus as rough guess for codon assignment
+codcons = {}
+for cod in all_hist:
+  thres50 = sum([all_hist[cod][aa] for aa in all_hist[cod]])/2
+  candidate = [aa for aa in all_hist[cod] if all_hist[cod][aa] >= thres50]
+  if len(candidate) >= 1:
+      # concatenate if there is a 50-50 tie (unlikely except for singleton counts)
+      codcons[cod] = '_'.join(candidate)
+  else:
+      codcons[cod] = '?'
+
 # Summary statistics on codon frequencies in alignments
-for cod in codon_d: # codon sequence
-  print("%s\t" % cod, end='')
-print()
-for cod in codon_d: # amino acid in the standard genetic code (for reference)
-  print("%s\t" % codon_d[cod], end='')
-print()
-for cod in codon_d: # counts of this codon in HMMer alignments
-  print("%s\t" % cod_count_d[cod], end= '')
-print()
-for cod in codon_d: # as percentage of total codon counts
-  print("%.1f\t" % (round(100*float(cod_count_d[cod])/cod_tot, 1)), end='')
+with open(args.counts, 'w') as fh:
+  fh.write("\t".join([ # header line
+    'codon','std_aa','put_aa','cod_count','cod_frac','cons_pos']) + '\n')
+  for cod in codon_d:
+    ll = [str(i) for i in [
+      cod, # codon sequence
+      codon_d[cod], # amino acid in the standard genetic code (for reference)
+      codcons[cod], # 50% consensus guess for this AA
+      cod_count_d[cod], # counts of this codon in HMMer alignments
+      (round(100*float(cod_count_d[cod])/cod_tot, 1)), # as percentage of total codon counts
+      len(dict(cod_d, **acod_d)[cod]) # number of conserved columns in HMMer alignment used for AA prediction
+    ]]
+    fh.write("\t".join(ll) + '\n')
+
+if args.debug: # Dump intermediate files for troubleshooting
+  # dump for checking
+  with open('stop_hist.json','w') as fh:
+    json.dump(stop_hist, fh, indent=4)
+  with open('all_hist.json','w') as fh:
+    json.dump(all_hist, fh, indent=4)
+  with open('cod_d.json','w') as fh:
+    json.dump(cod_d, fh, indent=4)
+  with open('acod_d.json','w') as fh:
+    json.dump(acod_d, fh, indent=4)
+
 
 # Write frequency of observed amino acid per codon to matrix for Weblogo to plot
 i = 0

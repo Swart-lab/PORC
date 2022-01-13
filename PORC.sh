@@ -17,6 +17,7 @@ PEP=$3.pep
 WEBLOGO_MATRIX=$3.mat
 HMMER_OUT=$PEP.hmmer_out
 PORC_OUT=$3.porc
+PORC_TBL=$3.porc.tbl.tsv
 PFAM_PATH=$5
 PFAM_DB=$PFAM_PATH/Pfam-A.hmm
 
@@ -28,7 +29,7 @@ HMMER_COMMAND='hmmsearch --cpu $HMMER_CPU -o $HMMER_OUT $PFAM_DB $PEP'
 echo $HMMER_COMMAND
 eval $HMMER_COMMAND
 
-MAIN_COMMAND='$PORC_PATH/porc_cod_usage.py --cds $CDS --hmmer $HMMER_OUT --matrix $WEBLOGO_MATRIX > $PORC_OUT'
+MAIN_COMMAND='$PORC_PATH/porc_cod_usage.py --cds $CDS --hmmer $HMMER_OUT --matrix $WEBLOGO_MATRIX --counts $PORC_TBL > $PORC_OUT'
 echo $MAIN_COMMAND
 eval $MAIN_COMMAND
 
