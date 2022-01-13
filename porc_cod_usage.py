@@ -1,15 +1,30 @@
 #!/usr/bin/env python
 
-from sys import argv, stderr
 from Bio import SeqIO, Seq
 from collections import OrderedDict
 from numpy import *
+import argparse
 
-# cut-off for including codon to be displayed; fraction of the mean codon
-# frequency of other non-stop codons
-codon_threshold = 0.05
-# conditional evalue threshold for HMMER domains to use
-eval_threshold = 1e-20
+parser = argparse.ArgumentParser()
+parser.add_argument(
+  '--cds', '-c', help='Fasta file with CDS sequences')
+parser.add_argument(
+  '--hmmer', '-a', help='Alignments produced by hmmsearch, output file from -o option')
+parser.add_argument(
+  '--matrix', '-m', help='Output path to write matrix for Weblogo')
+parser.add_argument(
+  '--codon_threshold', '-t', type=float, default=0.05,
+  help='Cut-off for including codon to be displayed; fraction of the mean codon frequency of other non-stop codons')
+parser.add_argument(
+  '--eval_threshold', '-v', type=float, default=1e-20,
+  help='Conditional evalue threshold for HMMER domains to use')
+args = parser.parse_args()
+
+if not args.cds or not args.hmmer or not args.matrix:
+    print('Options --cds, --hmmer, and --matrix are mandatory')
+    parser.print_help()
+    exit()
+
 
 codon_l = ( # standard genetic code
   ('TTT', 'F'),
@@ -111,15 +126,16 @@ def ok_cod(acod):
   else: 
     return(False)
 
+
 # Read CDS file to dict, keyed by sequence name
 cds_d = {}
-for rec in SeqIO.parse(open(argv[1]), 'fasta'): # CDS file
+for rec in SeqIO.parse(open(args.cds), 'fasta'): # CDS file
   cds_d[rec.name] = rec.seq
 
 cod_d = {}
 acod_d = {}
 
-text = open(argv[2], 'rt').read() # HMMer output
+text = open(args.hmmer, 'rt').read() # HMMer output
 
 chunks = text.split("//")
 found_both_l = []
@@ -139,7 +155,7 @@ for chunk in chunks:
         for dom_part in aln_part.split("score:")[1:]:
 
           cond_eval = float(dom_part.split("conditional E-value: ")[1].split("\n")[0])
-          if cond_eval < eval_threshold:
+          if cond_eval < args.eval_threshold:
 
             aln_lines = dom_part.split("\n")
             hmm_aln = []
@@ -310,7 +326,7 @@ for cod in codon_d:
   if cod in stop_cods:
     # if codon frequency is over the specified threshold, report in count
     # matrix for Weblogo plotting
-    if stop_tot[cod] > codon_threshold * mean(list(other_tot.values())):
+    if stop_tot[cod] > args.codon_threshold * mean(list(other_tot.values())):
       outlines.append(
         "\t".join([str(i)] + [str(float(all_hist[cod][aa])/aa_freq_d[aa]) for aa in aa_list]) + "\n")
       #outlines.append("%s" % i + "\t" + "\t".join([str(float(all_hist[cod][aa])) for aa in aa_list]) + "\n")
@@ -323,7 +339,7 @@ for cod in codon_d:
       "\t".join([str(i)] + [str(float(all_hist[cod][aa])/(aa_freq_d[aa] + 0.00001)) for aa in aa_list]) + "\n")
     #outlines.append("%s" % i + "\t" + "\t".join([str(float(all_hist[cod][aa]) + 0.00001) for aa in aa_list]) + "\n")
 
-outfh = open(argv[-1], 'w+') # Weblogo matrix file
+outfh = open(args.matrix, 'w+') # Weblogo matrix file
 outfh.writelines(outlines)
 outfh.close()
 
