@@ -5,77 +5,85 @@ from Bio import SeqIO, Seq
 from collections import OrderedDict
 from numpy import *
 
-codon_threshold = 0.05 # cut-off for including codon to be displayed
-eval_threshold = 1e-20 #conditional evalue threshold for HMMER domains to use
+# cut-off for including codon to be displayed; fraction of the mean codon
+# frequency of other non-stop codons
+codon_threshold = 0.05
+# conditional evalue threshold for HMMER domains to use
+eval_threshold = 1e-20
 
-codon_l = (
-('TTT', 'F'),
-('TTC', 'F'),
-('TTA', 'L'),
-('TTG', 'L'),
-('TCT', 'S'),
-('TCC', 'S'),
-('TCA', 'S'),
-('TCG', 'S'),
-('TAT', 'Y'),
-('TAC', 'Y'),
-('TAA', '*'),
-('TAG', '*'),
-('TGT', 'C'),
-('TGC', 'C'),
-('TGA', '*'),
-('TGG', 'W'),
-('CTT', 'L'),
-('CTC', 'L'),
-('CTA', 'L'),
-('CTG', 'L'),
-('CCT', 'P'),
-('CCC', 'P'),
-('CCA', 'P'),
-('CCG', 'P'),
-('CAT', 'H'),
-('CAC', 'H'),
-('CAA', 'Q'),
-('CAG', 'Q'), 
-('CGT', 'R'),
-('CGC', 'R'),
-('CGA', 'R'),
-('CGG', 'R'),
-('ATT', 'I'),
-('ATC', 'I'),
-('ATA', 'I'),
-('ATG', 'M'),
-('ACT', 'T'),
-('ACC', 'T'),
-('ACA', 'T'),
-('ACG', 'T'),
-('AAT', 'N'),
-('AAC', 'N'),
-('AAA', 'K'),
-('AAG', 'K'),
-('AGT', 'S'),
-('AGC', 'S'),
-('AGA', 'R'),
-('AGG', 'R'),
-('GTT', 'V'),
-('GTC', 'V'),
-('GTA', 'V'),
-('GTG', 'V'),
-('GCT', 'A'),
-('GCC', 'A'),
-('GCA', 'A'),
-('GCG', 'A'),
-('GAT', 'D'),
-('GAC', 'D'),
-('GAA', 'E'),
-('GAG', 'E'),
-('GGT', 'G'),
-('GGC', 'G'),
-('GGA', 'G'),
-('GGG', 'G'))
+codon_l = ( # standard genetic code
+  ('TTT', 'F'),
+  ('TTC', 'F'),
+  ('TTA', 'L'),
+  ('TTG', 'L'),
+  ('TCT', 'S'),
+  ('TCC', 'S'),
+  ('TCA', 'S'),
+  ('TCG', 'S'),
+  ('TAT', 'Y'),
+  ('TAC', 'Y'),
+  ('TAA', '*'),
+  ('TAG', '*'),
+  ('TGT', 'C'),
+  ('TGC', 'C'),
+  ('TGA', '*'),
+  ('TGG', 'W'),
+  ('CTT', 'L'),
+  ('CTC', 'L'),
+  ('CTA', 'L'),
+  ('CTG', 'L'),
+  ('CCT', 'P'),
+  ('CCC', 'P'),
+  ('CCA', 'P'),
+  ('CCG', 'P'),
+  ('CAT', 'H'),
+  ('CAC', 'H'),
+  ('CAA', 'Q'),
+  ('CAG', 'Q'), 
+  ('CGT', 'R'),
+  ('CGC', 'R'),
+  ('CGA', 'R'),
+  ('CGG', 'R'),
+  ('ATT', 'I'),
+  ('ATC', 'I'),
+  ('ATA', 'I'),
+  ('ATG', 'M'),
+  ('ACT', 'T'),
+  ('ACC', 'T'),
+  ('ACA', 'T'),
+  ('ACG', 'T'),
+  ('AAT', 'N'),
+  ('AAC', 'N'),
+  ('AAA', 'K'),
+  ('AAG', 'K'),
+  ('AGT', 'S'),
+  ('AGC', 'S'),
+  ('AGA', 'R'),
+  ('AGG', 'R'),
+  ('GTT', 'V'),
+  ('GTC', 'V'),
+  ('GTA', 'V'),
+  ('GTG', 'V'),
+  ('GCT', 'A'),
+  ('GCC', 'A'),
+  ('GCA', 'A'),
+  ('GCG', 'A'),
+  ('GAT', 'D'),
+  ('GAC', 'D'),
+  ('GAA', 'E'),
+  ('GAG', 'E'),
+  ('GGT', 'G'),
+  ('GGC', 'G'),
+  ('GGA', 'G'),
+  ('GGG', 'G'))
 codon_d = OrderedDict(codon_l)
 
 def aln_cds_to_pep_aln(cds, pep, pep_start=145):
+  """Align CDS relative to amino acid sequence with gaps
+
+  With inputs: ungapped CDS sequence and gapped amino acid sequence, introduce
+  gaps to the CDS sequence so that it is aligned to the amino acids.
+  """
   new_cds_l = []
   j = pep_start
   cds_str = str(cds)
@@ -86,28 +94,32 @@ def aln_cds_to_pep_aln(cds, pep, pep_start=145):
     else:
       new_cds_l.append(cds_str[j*3:(j+1)*3])
     j += 1
-  return new_cds_l
+  return(new_cds_l)
 
 
 def ok_cod(acod):
+  """Check if a codon is valid
+
+  Returns True if not a gap, has length 3, and only contains A, T, C or G,
+  False otherwise.
+  """
   chars = ['A', 'C', 'G', 'T']
-
   if acod == '---':
-    return False
+    return(False)
   elif len(acod) == 3 and acod[0] in chars and acod[1] in chars and acod[2] in chars:
-    return True
+    return(True)
   else: 
-    return False
+    return(False)
 
+# Read CDS file to dict, keyed by sequence name
 cds_d = {}
-
-for rec in SeqIO.parse(open(argv[1]), 'fasta'):
+for rec in SeqIO.parse(open(argv[1]), 'fasta'): # CDS file
   cds_d[rec.name] = rec.seq
 
 cod_d = {}
 acod_d = {}
 
-text = open(argv[2], 'rt').read()
+text = open(argv[2], 'rt').read() # HMMer output
 
 chunks = text.split("//")
 found_both_l = []
@@ -184,7 +196,6 @@ for chunk in chunks:
 
               query_aln_seq = "".join(query_aln)
               hmmer_cons = "".join(hmm_aln)
-
 
               cds_aln_l = aln_cds_to_pep_aln(cds_d[query_id], query_aln_seq, pep_start=query_aln_start-1)
               
@@ -279,36 +290,40 @@ print('used codons', used_cods)
 
 print()
 
-for cod in codon_d:
+# Summary statistics on codon frequencies in alignments
+for cod in codon_d: # codon sequence
   print("%s\t" % cod, end='')
-
 print()
-for cod in codon_d:
+for cod in codon_d: # amino acid in the standard genetic code (for reference)
   print("%s\t" % codon_d[cod], end='')
-
 print()
-for cod in codon_d:
+for cod in codon_d: # counts of this codon in HMMer alignments
   print("%s\t" % cod_count_d[cod], end= '')
-
 print()
-for cod in codon_d:
+for cod in codon_d: # as percentage of total codon counts
   print("%.1f\t" % (round(100*float(cod_count_d[cod])/cod_tot, 1)), end='')
 
-
+# Write frequency of observed amino acid per codon to matrix for Weblogo to plot
 i = 0
 for cod in codon_d:
   i += 1
   if cod in stop_cods:
+    # if codon frequency is over the specified threshold, report in count
+    # matrix for Weblogo plotting
     if stop_tot[cod] > codon_threshold * mean(list(other_tot.values())):
-      outlines.append("%s" % i + "\t" + "\t".join([str(float(all_hist[cod][aa])/aa_freq_d[aa]) for aa in aa_list]) + "\n") 
-      #outlines.append("%s" % i + "\t" + "\t".join([str(float(all_hist[cod][aa])) for aa in aa_list]) + "\n") 
+      outlines.append(
+        "\t".join([str(i)] + [str(float(all_hist[cod][aa])/aa_freq_d[aa]) for aa in aa_list]) + "\n")
+      #outlines.append("%s" % i + "\t" + "\t".join([str(float(all_hist[cod][aa])) for aa in aa_list]) + "\n")
+    # else append zeroes (column not displayed by Weblogo)
     else:
-      outlines.append("%s" % i + "\t" + "\t".join(["0" for aa in aa_list]) + "\n") 
+      outlines.append(
+        "\t".join([str(i)] + ["0" for aa in aa_list]) + "\n")
   else:
-    outlines.append("%s" % i + "\t" + "\t".join([str(float(all_hist[cod][aa])/(aa_freq_d[aa] + 0.00001)) for aa in aa_list]) + "\n") 
-    #outlines.append("%s" % i + "\t" + "\t".join([str(float(all_hist[cod][aa]) + 0.00001) for aa in aa_list]) + "\n") 
+    outlines.append(
+      "\t".join([str(i)] + [str(float(all_hist[cod][aa])/(aa_freq_d[aa] + 0.00001)) for aa in aa_list]) + "\n")
+    #outlines.append("%s" % i + "\t" + "\t".join([str(float(all_hist[cod][aa]) + 0.00001) for aa in aa_list]) + "\n")
 
-outfh = open(argv[-1], 'w+')
+outfh = open(argv[-1], 'w+') # Weblogo matrix file
 outfh.writelines(outlines)
 outfh.close()
 
