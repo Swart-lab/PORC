@@ -329,7 +329,7 @@ with open(args.counts, 'w') as fh:
       codon_d[cod], # amino acid in the standard genetic code (for reference)
       codcons[cod], # 50% consensus guess for this AA
       cod_count_d[cod], # counts of this codon in HMMer alignments
-      (round(100*float(cod_count_d[cod])/cod_tot, 1)), # as percentage of total codon counts
+      (round(100*float(cod_count_d[cod])/cod_tot, 4)), # as percentage of total codon counts
       len(dict(cod_d, **acod_d)[cod]) # number of conserved columns in HMMer alignment used for AA prediction
     ]]
     fh.write("\t".join(ll) + '\n')
