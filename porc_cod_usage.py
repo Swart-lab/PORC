@@ -7,14 +7,15 @@ import argparse
 import json
 
 parser = argparse.ArgumentParser()
-parser.add_argument(
-  '--cds', '-c', help='Fasta file with CDS sequences from six-frame translation; assumes translated with standard genetic code with canonical stop codons TGA/TAA/TAG translated as X')
-parser.add_argument(
-  '--hmmer', '-a', help='Alignments produced by hmmsearch, output file from -o option')
-parser.add_argument(
-  '--matrix', '-m', help='Output path to write matrix for Weblogo')
-parser.add_argument(
-  '--counts', '-o', help='Output path to write table of codon counts')
+req_args = parser.add_argument_group('required named arguments')
+req_args.add_argument(
+  '--cds', '-c', help='Fasta file with CDS sequences from six-frame translation; assumes translated with standard genetic code with canonical stop codons TGA/TAA/TAG translated as X', required=True)
+req_args.add_argument(
+  '--hmmer', '-a', help='Alignments produced by hmmsearch, output file from -o option', required=True)
+req_args.add_argument(
+  '--matrix', '-m', help='Output path to write matrix for Weblogo', required=True)
+req_args.add_argument(
+  '--counts', '-o', help='Output path to write table of codon counts', required=True)
 parser.add_argument(
   '--codon_threshold', '-t', type=float, default=0.05, # TODO improve/correct the description in help
   help='Cut-off for including codon to be displayed; fraction of the mean codon frequency of other non-stop codons')
@@ -24,11 +25,6 @@ parser.add_argument(
 parser.add_argument(
   '--debug', action='store_true')
 args = parser.parse_args()
-
-if not args.cds or not args.hmmer or not args.matrix:
-    print('Options --cds, --hmmer, and --matrix are mandatory')
-    parser.print_help()
-    exit()
 
 codon_l = ( # standard genetic code
   ('TTT', 'F'),
