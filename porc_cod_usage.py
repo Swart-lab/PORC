@@ -324,13 +324,17 @@ with open(args.counts, 'w') as fh:
   fh.write("\t".join([ # header line
     'codon','std_aa','put_aa','cod_count','cod_frac','cons_pos']) + '\n')
   for cod in codon_d:
+    cons_col = 0
+    if cod in cod_d or cod in acod_d:
+      # in case the codon was not observed at all (possible for true stops)
+      cons_col = len(dict(cod_d, **acod_d)[cod]) # number of conserved columns in HMMer alignment used for AA prediction
     ll = [str(i) for i in [
       cod, # codon sequence
       codon_d[cod], # amino acid in the standard genetic code (for reference)
       codcons[cod], # 50% consensus guess for this AA
       cod_count_d[cod], # counts of this codon in HMMer alignments
       (round(100*float(cod_count_d[cod])/cod_tot, 4)), # as percentage of total codon counts
-      len(dict(cod_d, **acod_d)[cod]) # number of conserved columns in HMMer alignment used for AA prediction
+      cons_col # number of conserved columns in HMMer alignment used for AA prediction
     ]]
     fh.write("\t".join(ll) + '\n')
 
