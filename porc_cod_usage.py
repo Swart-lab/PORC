@@ -312,12 +312,15 @@ print()
 codcons = {}
 for cod in all_hist:
   thres50 = sum([all_hist[cod][aa] for aa in all_hist[cod]])/2
-  candidate = [aa for aa in all_hist[cod] if all_hist[cod][aa] >= thres50]
-  if len(candidate) >= 1:
-      # concatenate if there is a 50-50 tie (unlikely except for singleton counts)
-      codcons[cod] = '_'.join(candidate)
+  if thres50 == 0: # no codons counted!
+    codcons[cod] = '-'
   else:
-      codcons[cod] = '?'
+    candidate = [aa for aa in all_hist[cod] if all_hist[cod][aa] >= thres50]
+    if len(candidate) >= 1:
+        # concatenate if there is a 50-50 tie (unlikely except for singleton counts)
+        codcons[cod] = '_'.join(candidate)
+    else:
+        codcons[cod] = '?'
 
 # Summary statistics on codon frequencies in alignments
 with open(args.counts, 'w') as fh:
@@ -359,7 +362,7 @@ for cod in codon_d:
     # matrix for Weblogo plotting
     if stop_tot[cod] > args.codon_threshold * mean(list(other_tot.values())):
       outlines.append(
-        "\t".join([str(i)] + [str(float(all_hist[cod][aa])/aa_freq_d[aa]) for aa in aa_list]) + "\n")
+        "\t".join([str(i)] + [str(float(all_hist[cod][aa])/(aa_freq_d[aa] + 0.00001)) for aa in aa_list]) + "\n")
       #outlines.append("%s" % i + "\t" + "\t".join([str(float(all_hist[cod][aa])) for aa in aa_list]) + "\n")
     # else append zeroes (column not displayed by Weblogo)
     else:
