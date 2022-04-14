@@ -7,7 +7,7 @@ PORC was used to predict a few new genetic codes in cilates using [MMETSP transc
 
 PORC can be run with the following command:
 
-`./PORC.sh $PATH_TO_PORC_SCRIPTS HMMER_PROCESSES GENOME_FILE_PREFIX GENOME_FILE_SUFFIX PFAM_PATH)`
+`./PORC.sh $PATH_TO_PORC_SCRIPTS HMMER_PROCESSES GENOME_FILE_PREFIX GENOME_FILE_SUFFIX PFAM_PATH`
 
 See comments in `PORC.sh` for more details on how to run. 
 
