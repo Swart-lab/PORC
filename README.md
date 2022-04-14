@@ -7,9 +7,9 @@ PORC was used to predict a few new genetic codes in cilates using [MMETSP transc
 
 ## Installation
 
-`git clone https://github.com/Swart-lab/PORC/
-cd PORC
-`
+`git clone https://github.com/Swart-lab/PORC/`
+
+`cd PORC`
 
 ## Running
 
